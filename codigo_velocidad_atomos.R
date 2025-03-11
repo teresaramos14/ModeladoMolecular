@@ -1,39 +1,42 @@
 # Cargar librerías
 library(ggplot2)
+library(reshape2)
 
-# Leer el archivo ignorando líneas de comentarios
-velocidades <- read.table("veloc400.xvg", comment.char = "#")
+# Leer los archivos ignorando líneas de comentarios
+velocidades_400K <- read.table("veloc400.xvg", comment.char = "#")
+velocidades_298K <- read.table("veloc298.xvg", comment.char = "#")
 
-# Asignar nombres de columnas (suponiendo que el formato es Tiempo, vX, vY, vZ, |v|, ...)
-colnames(velocidades) <- c("Tiempo", paste0(rep(c("vX", "vY", "vZ", "v"), times = ncol(velocidades) %/% 4), "_", rep(1:(ncol(velocidades) %/% 4), each = 4)))
+# Asignar nombres de columnas
+colnames(velocidades_400K) <- c("Tiempo", paste0(rep(c("vX", "vY", "vZ", "v"), times = ncol(velocidades_400K) %/% 4), "_", rep(1:(ncol(velocidades_400K) %/% 4), each = 4)))
+colnames(velocidades_298K) <- c("Tiempo", paste0(rep(c("vX", "vY", "vZ", "v"), times = ncol(velocidades_298K) %/% 4), "_", rep(1:(ncol(velocidades_298K) %/% 4), each = 4)))
 
-# Extraer tiempo y magnitudes de velocidad de 5 átomos
-data_plot <- data.frame(
-  Tiempo = velocidades$Tiempo,
-  Atomo1 = velocidades$v_1,
-  Atomo2 = velocidades$v_2,
-  Atomo3 = velocidades$v_3,
-  Atomo4 = velocidades$v_4,
-  Atomo5 = velocidades$v_5
+# Extraer tiempo y magnitudes de velocidad del átomo 1 para cada temperatura
+data_400K <- data.frame(
+  Tiempo = velocidades_400K$Tiempo,
+  Atomo1 = velocidades_400K$v_5,
+  Temperatura = "400K"
 )
 
+data_298K <- data.frame(
+  Tiempo = velocidades_298K$Tiempo,
+  Atomo1 = velocidades_298K$v_5,
+  Temperatura = "298K"
+)
+
+# Combinar ambos conjuntos de datos
+data_combined <- rbind(data_400K, data_298K)
+
 # Convertir a formato largo para ggplot
-data_long <- melt(data_plot, id.vars = "Tiempo", variable.name = "Atomo", value.name = "Velocidad")
+data_long <- melt(data_combined, id.vars = c("Tiempo", "Temperatura"), variable.name = "Atomo", value.name = "Velocidad")
 
-# Colores personalizados
-colores_personalizados <- c("Atomo1" = "#E63946",  # Rojo
-                            "Atomo2" = "#457B9D",  # Azul
-                            "Atomo3" = "#F4A261",  # Naranja
-                            "Atomo4" = "#2A9D8F",  # Verde
-                            "Atomo5" = "#9C27B0")  # Morado
-
-# Graficar con colores personalizados
-ggplot(data_long, aes(x = Tiempo, y = Velocidad, color = Atomo)) +
+# Graficar las velocidades del átomo 1 a 298K y 400K
+ggplot(data_long, aes(x = Tiempo, y = Velocidad, color = Temperatura)) +
   geom_line(size = 1) +
-  scale_color_manual(values = colores_personalizados) +
-  labs(title = "Velocidades de 5 átomos en función del tiempo (400 K)",
+  scale_color_manual(values = c("400K" = "#E63946", "298K" = "#457B9D")) +  # Rojo para 400K y Azul para 298K
+  labs(title = "Velocidad del átomo 5 en función del tiempo (298K vs 400K)",
        x = "Tiempo (ps)",
        y = "Velocidad (nm/ps)") +
   theme_minimal() +
   theme(legend.title = element_blank())
+
 
